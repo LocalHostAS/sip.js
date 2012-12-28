@@ -437,7 +437,7 @@ function stringify(m) {
     s = m.method + ' ' + stringifyUri(m.uri) + ' SIP/' + stringifyVersion(m.version) + '\r\n';
   }
 
-  m.headers['content-length'] = (m.content || '').length;
+  m.headers['content-length'] = Buffer.byteLength((m.content || ''),'utf8');
 
   for(var n in m.headers) {
     if(typeof m.headers[n] === 'string' || !stringifiers[n]) 
@@ -523,7 +523,7 @@ function makeStreamParser(onMessage) {
   function content(data) {
     r += data;
 
-    if(r.length >= m.headers['content-length']) {
+    if(Buffer.byteLength(r, 'utf8') >= m.headers['content-length']) {
       m.content = r.substring(0, m.headers['content-length']);
       
       onMessage(m);
@@ -542,7 +542,7 @@ function makeStreamParser(onMessage) {
 exports.makeStreamParser = makeStreamParser;
 
 function parseMessage(s) {
-  var r = s.toString('ascii').split('\r\n\r\n');
+  var r = s.toString('utf8').split('\r\n\r\n');
   if(r) {
     var m = parse(r[0]);
 
@@ -576,7 +576,7 @@ function makeTcpTransport(options, callback) {
           pending.push(m);
         else {
           if(m.method) m.headers.via[0].host = stream.address().address;
-          stream.write(stringify(m), 'ascii');
+          stream.write(stringify(m), 'utf8');
         }
       }
       catch(e) {
@@ -584,7 +584,7 @@ function makeTcpTransport(options, callback) {
       }
     }
     
-    stream.setEncoding('ascii');
+    stream.setEncoding('utf8');
 
     stream.on('data', makeStreamParser(function(m) { 
       if(m.method) m.headers.via[0].params.received = remote.address;
@@ -665,7 +665,7 @@ function makeUdpTransport_V0_5(options, callback) {
       return {
         send: function(m) {
           var s = stringify(m);
-          socket.send(new Buffer(s, 'ascii'), 0, s.length, remote.port, remote.address);          
+          socket.send(new Buffer(s, 'utf8'), 0, s.length, remote.port, remote.address);          
         },
         local: {protocol: 'UDP', address: socket.address().address, port: socket.address().port},
         release : function() {}
@@ -725,7 +725,7 @@ function makeUdpTransport_pre_V0_5(options, callback) {
       return { 
         send: function(m) {
           var s = stringify(m);
-          socket.send(new Buffer(s, 'ascii'), 0, s.length);
+          socket.send(new Buffer(s, 'utf8'), 0, s.length);
         },
         release: function() { 
           if(onError) socket.removeListener('error', onError);
